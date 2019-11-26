@@ -9,7 +9,6 @@ window.addEventListener('load', function () {
 async function init() {
     const words = await getWords();
     if (typeof words.dictionary !== 'undefined') {
-        console.log('yes words: ', words.dictionary);
         let game = new Game(words.dictionary);
         // todo; здесь получать из локал сторейджа, если он пуст, то рендерить
         game.renderGame();
