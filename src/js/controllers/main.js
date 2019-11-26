@@ -32,32 +32,49 @@ export class Game {
         letters.forEach((letter) => {
             let node = document.createElement('BUTTON');
             node.textContent = letter;
-            node.classList.add('letter', 'btn', 'btn-primary');
-            node.addEventListener('click', this.selectEvent);
+            node.classList.add(`letter-${letter}`, 'btn', 'btn-primary');
+            node.addEventListener('click', this.selectEvent.bind(this, letter));
             el.appendChild(node);
         });
     }
 
     getCurrentLetter() {
-        const word = this.words[this.wordPointer];
+        const word = this.getCurrentWord();
         const currentLetters = word.split('');
         return currentLetters[this.letterPointer];
     }
 
-    static select(selected) {
-        // console.log('inner: ', inner);
+    getCurrentWord() {
+        return this.words[this.wordPointer];
+    }
+
+    select() {
         const currentLetter = this.getCurrentLetter();
-        console.log('selected: ', selected, 'currentLetter: ', currentLetter);
+        const el = document.getElementsByClassName(`letter-${currentLetter}`);
     }
 
-    selectEvent() {
-        // console.log('select', this.self);
-        Game.select(this.innerText);
-        // console.log(obj, this);
-        // console.log(test);
-        // console.log(this.innerText);
-        // console.log(this.innerText, this.getCurrentLetter());
+    nextWord() {
+        this.wordPointer++;
+        this.letterPointer = 0;
+        this.reInit();
     }
 
-    // todo; если равны то окрашивать зеленым и добавлять букву
+    reInit() {
+        this.renderGame();
+    }
+
+    selectEvent(letter) {
+        console.log(this.getCurrentWord());
+        const currentLetter = this.getCurrentLetter();
+        console.log(currentLetter, letter);
+        if (currentLetter !== letter) {
+            console.log('Error!');
+        } else {
+            this.select();
+            this.letterPointer++;
+            if (!this.getCurrentLetter()) {
+                this.nextWord();
+            }
+        }
+    }
 }
