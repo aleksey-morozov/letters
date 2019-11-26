@@ -51,6 +51,21 @@ export class Game {
     select() {
         const currentLetter = this.getCurrentLetter();
         const el = document.getElementsByClassName(`letter-${currentLetter}`);
+        document.querySelector('letter-h');
+    }
+
+    removePrimary(letter) {
+        const el = document.querySelector(`letter-${letter}`);
+        el.classList.remove('btn-primary');
+        return el;
+    }
+
+    selectError(letter) {
+        this.removePrimary(letter).classList.add('btn-danger');
+    }
+
+    selectSuccess(letter) {
+        this.removePrimary(letter).classList.add('btn-success');
     }
 
     nextWord() {
@@ -68,9 +83,10 @@ export class Game {
         const currentLetter = this.getCurrentLetter();
         console.log(currentLetter, letter);
         if (currentLetter !== letter) {
+            this.selectError(letter);
             console.log('Error!');
         } else {
-            this.select();
+            this.selectSuccess(letter);
             this.letterPointer++;
             if (!this.getCurrentLetter()) {
                 this.nextWord();
