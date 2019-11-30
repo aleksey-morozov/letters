@@ -8,3 +8,11 @@ export async function getWords() {
         throw new Error('Ошибка при получения словаря!');
     }
 }
+
+export async function saveToStorage(data) {
+    localStorage.setItem('gameData', JSON.stringify(data));
+}
+
+export async function getFromStorage() {
+    return JSON.parse(localStorage.getItem('gameData'));
+}

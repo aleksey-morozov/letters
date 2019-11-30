@@ -1,3 +1,5 @@
+import { saveToStorage } from '../services/main';
+
 export class Game {
     constructor(words) {
         this.dictionary = words;
@@ -9,11 +11,20 @@ export class Game {
         this.stats = [];
         this.errors = 0;
         this.startTime = new Date();
-        this.drawCurrentRound();
-        document.querySelector('#total_questions').innerHTML = this.maxWords + 1;
+    }
+
+    setGame({ words, wordPointer, letterPointer, errors,  stats}) {
+        this.words = words;
+        this.wordPointer = wordPointer;
+        this.letterPointer = letterPointer;
+        this.errors = errors;
+        this.stats = stats;
     }
 
     renderGame() {
+        this.drawRoundNumber();
+        document.querySelector('#total_questions').innerHTML = this.maxWords + 1;
+        this.displayStatsLine(false).displayLetters();
         const word = this.words[this.wordPointer];
         const lettersShuffled = Game.shuffle(word.split(''));
         this.drawButtons(lettersShuffled);
@@ -23,8 +34,7 @@ export class Game {
     reInitGame() {
         this.stats = [];
         this.wordPointer = 0;
-        this.drawCurrentRound().initWords().renderGame();
-        // todo; показывать таблицу результатов
+        this.drawRoundNumber().initWords().renderGame().saveToStorage();
         return this;
     }
 
@@ -32,11 +42,13 @@ export class Game {
         this.wordPointer++;
         this.letterPointer = 0;
         this.successLetters = [];
+        this.errors = 0;
         this.drawAnswer();
         if (this.wordPointer > this.maxWords) {
-            this.stopTimer().reInitGame().startTimer();
+            this.stopTimer().drawStats();
         } else {
-            this.drawCurrentRound().renderGame().startTimer();
+            this.saveToStorage();
+            this.drawRoundNumber().renderGame().startTimer();
         }
     }
 
@@ -55,14 +67,39 @@ export class Game {
         return array;
     }
 
+    getCurrentLetters() {
+        return this.getCurrentWord().split('');
+    }
+
     drawButtons(letters) {
+        const selectedLetters = [];
+        if (this.letterPointer > 0) {
+            const curLetters = this.getCurrentLetters();
+            for (let key in curLetters) {
+                if (this.letterPointer > key) {
+                    selectedLetters.push(curLetters[key]);
+                    this.successLetters.push(curLetters[key]);
+                }
+            }
+
+            if (this.successLetters.length > 0) {
+                this.drawAnswer();
+            }
+        }
+
         const el = document.querySelector('#letters');
         el.innerHTML = '';
         for (let key in letters) {
             const letter = letters[key];
             let node = document.createElement('BUTTON');
             node.textContent = letter;
-            node.classList.add(`letter-${key}`, 'btn', 'btn-primary');
+            let btnClass = 'btn-primary';
+            const index = selectedLetters.indexOf(letter);
+            if (index > -1) {
+                btnClass = 'btn-success';
+                selectedLetters.splice(index, 1);
+            }
+            node.classList.add(`letter-${key}`, 'btn', btnClass);
             node.addEventListener('click', this.selectEvent.bind(this, key));
             el.appendChild(node);
         }
@@ -103,41 +140,87 @@ export class Game {
             end: endDate.toLocaleTimeString(),
             fullTime: (endDate.getTime() - this.startTime.getTime()) / 1000,
         });
-
         return this;
     }
 
     selectError(key) {
         const el = document.querySelector(`.letter-${key}`);
-        this.togglePrimary(el, false).toggleDanger(el);
+        this.togglePrimaryClass(el, false).toggleDangerClass(el);
         setTimeout(() => {
-            this.toggleDanger(el, false).togglePrimary(el);
+            this.toggleDangerClass(el, false).togglePrimaryClass(el);
         }, 400);
     }
 
     selectSuccess(key) {
         const el = document.querySelector(`.letter-${key}`);
-        this.togglePrimary(el, false).toggleSuccess(el);
+        this.togglePrimaryClass(el, false).toggleSuccessClass(el);
     }
 
     selectEvent(key) {
-        const letter = document.querySelector(`.letter-${key}`).textContent;
+        const el = document.querySelector(`.letter-${key}`);
+        const letter = el.textContent.trim();
         const currentLetter = this.getCurrentLetter();
         if (currentLetter !== letter) {
             this.selectError(key);
             this.errors++;
-        } else {
+            this.saveToStorage();
+        } else if (!el.classList.contains('btn-success')) {
             this.successLetters.push(letter);
             this.drawAnswer();
             this.selectSuccess(key);
             this.letterPointer++;
             if (!this.getCurrentLetter()) {
                 this.stopTimer().nextWord();
+            } else {
+                this.saveToStorage();
             }
         }
     }
 
-    togglePrimary(el, add = true) {
+    saveToStorage() {
+        const data = {
+            words: this.words,
+            wordPointer: this.wordPointer,
+            letterPointer: this.letterPointer,
+            errors: this.errors,
+            stats: this.stats,
+        };
+
+        saveToStorage(data);
+    }
+
+    displayStatsLine(show= true) {
+        let display = 'block';
+        if (!show) {
+            display = 'none';
+        }
+        document.querySelector('.stats').style.display = display;
+        return this;
+    }
+
+    displayLetters(show = true) {
+        let display = 'block';
+        if (!show) {
+            display = 'none';
+        }
+        document.querySelector('#letters').style.display = display;
+        return this;
+    }
+
+    drawStats() {
+        this.displayLetters(false).displayStatsLine();
+        let fullTime = 0;
+        let errors = 0;
+        this.stats.forEach((item) => {
+            fullTime += ~~item.fullTime;
+            errors += item.errors;
+        });
+        const template = `Количество ошибок: ${errors} Секунд: ${fullTime}`;
+        const el = document.querySelector('.stats .stats-info');
+        el.innerHTML = template;
+    }
+
+    togglePrimaryClass(el, add = true) {
         if (add) {
             el.classList.add('btn-primary');
         } else {
@@ -146,7 +229,7 @@ export class Game {
         return this;
     }
 
-    toggleDanger(el, add = true) {
+    toggleDangerClass(el, add = true) {
         if (add) {
             el.classList.add('btn-danger');
         } else {
@@ -155,7 +238,7 @@ export class Game {
         return this;
     }
 
-    toggleSuccess(el, add = true) {
+    toggleSuccessClass(el, add = true) {
         if (add) {
             el.classList.add('btn-success');
         } else {
@@ -164,7 +247,7 @@ export class Game {
         return this;
     }
 
-    drawCurrentRound() {
+    drawRoundNumber() {
         document.querySelector('#current_question').innerHTML = this.wordPointer + 1;
         return this;
     }

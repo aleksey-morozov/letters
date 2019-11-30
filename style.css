@@ -1,0 +1,6 @@
+.stats {
+    display: none;
+}
+#letters .btn, #answer .btn {
+    margin-right: 5px;
+}
